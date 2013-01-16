@@ -1,19 +1,25 @@
 package main
 
-import "github.com/mattn/go-mruby"
+import (
+	"fmt"
+	"os/exec"
+	"github.com/mattn/go-mruby"
+)
 
 func main() {
 	mrb := mruby.New()
 	defer mrb.Close()
 
-	println(mrb.Eval(`"hello " + ARGV[0]`, "mruby").(string))
+	fmt.Printf("%#v\n", mrb.Eval(`
+begin
+  p Module.constants
+rescue => ex
+  p ex
+end
+  `))
 
-	for _, i := range mrb.Eval(`ARGV.map {|x| x + 1}`, 1, 2, 3).([]interface{}) {
-		println(i.(int32)) // 2 3 4
-	}
-
-	mrb.Run(`p ARGV[0]`, map[string]interface{} {
-		"foo": "bar",
-		"bar": "baz",
-	})
+  b, _ := exec.Command("ruby", "-v").Output()
+  b = b[:len(b)-1]
+  mrb.DefineConst(mrb.ClassGet("Kernel"), "RUBY_DESCRIPTION", mrb.NewString(string(b)))
+  mrb.Eval(`p RUBY_DESCRIPTION`)
 }
